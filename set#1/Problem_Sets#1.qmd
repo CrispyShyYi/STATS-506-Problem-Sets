@@ -1,0 +1,20 @@
+---
+title: "Problem Set#1"
+author: "Jialiang Wu"
+format:
+  html:
+    code-fold: true
+    code-summary: "Show the code"
+    embed-resources: true
+    css: style.css
+    toc: true
+    toc-depth: 5
+    toc-expand: 2
+editor: visual
+---
+
+# Problem Set setup
+
+```{r}
+
+```
