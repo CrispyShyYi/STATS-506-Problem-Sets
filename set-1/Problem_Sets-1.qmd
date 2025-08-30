@@ -1,0 +1,397 @@
+---
+title: "Problem Set#1"
+author: "Jialiang Wu"
+format:
+  html:
+    theme: default
+    page-layout: article
+    code-fold: true
+    code-summary: "Show the code"
+    embed-resources: true
+editor: visual
+---
+For source files and data, see my GitHub repo: [STATS-506-Problem-Sets-01](https://github.com/CrispyShyYi/STATS-506-Problem-Sets/tree/main/set%231)
+
+# Problem 1 - Abalone Data
+
+## a
+
+1.  import data\
+2.  assign column names according to `abalone.names`
+
+```{r p1a}
+# read in data
+abalone <- read.csv("abalone/abalone.data", 
+                    header = FALSE
+                    )
+
+# Assign column names from abalone.names
+colnames(abalone) <- c(
+  "Sex",              
+  "Length",           
+  "Diameter",         
+  "Height",           
+  "WholeWeight",      
+  "ShuckedWeight",    
+  "VisceraWeight",    
+  "ShellWeight",      
+  "Rings"             
+)
+
+# Check assigned results
+head(abalone)
+```
+
+## b
+
+1.  report the number of observations to each sex
+
+```{r p1b}
+table(abalone$Sex)
+```
+
+According to the summary of table, there are 1307 female, 1528 male, and 1342 infant
+
+## c
+
+```{r p1c}
+# 1
+# Select the weight columns and Rings
+weights <- abalone[, c("WholeWeight", "ShuckedWeight", "VisceraWeight", "ShellWeight", "Rings")]
+
+# Compute correlations
+cor_matrix <- cor(weights)
+
+# Look at correlations
+cor_matrix["Rings", ]
+
+# 2
+# correlation by sex
+cat("rings correlation with male shell wight is:", 
+    cor(abalone$ShellWeight[abalone$Sex == "M"], abalone$Rings[abalone$Sex == "M"]))
+
+cat("rings correlation with female shell wight is:", cor(abalone$ShellWeight[abalone$Sex == "F"], abalone$Rings[abalone$Sex == "F"]))
+
+cat("rings correlation with infant shell wight is:", cor(abalone$ShellWeight[abalone$Sex == "I"], abalone$Rings[abalone$Sex == "I"]))
+
+# 3
+# Find the abalone with the maximum Rings
+abalone[abalone$Rings == max(abalone$Rings), 
+        c("WholeWeight", "ShuckedWeight", "VisceraWeight", "ShellWeight", "Rings")]
+
+# 4
+# Count num of abalones have VisceraWeight > ShellWeight
+count <- sum(abalone$VisceraWeight > abalone$ShellWeight)
+
+# Total abalones
+total <- nrow(abalone)
+
+# Percentage
+cat(percent <- (count / total) * 100, "%")
+
+```
+
+1.  According to the correlation matrix, the ShellWeight has the highest correlation with Rings
+2.  For the shell weight, infant has the highest correlation with rings
+3.  The tables of weights with the most rings: 29 are:
+
+-   WholeWeight: 1.8075
+-   ShuckedWeight: 0.7055
+-   VisceraWeight: 0.3215
+-   ShellWeight: 0.475
+
+4.  There are approximately 6.51% abalones have a viscera weight larger than their shell weight
+
+## d
+
+```{r p1d}
+# weights of interest
+weights <- c("WholeWeight", "ShuckedWeight", "VisceraWeight", "ShellWeight")
+
+# empty data frame
+result <- data.frame(
+  Sex = character(),
+  WholeWeight = numeric(),
+  ShuckedWeight = numeric(),
+  VisceraWeight = numeric(),
+  ShellWeight = numeric(),
+  stringsAsFactors = FALSE
+)
+
+# loop through each sex
+for (sex in unique(abalone$Sex)) {
+  subset <- abalone[abalone$Sex == sex, ]
+  cor_whole   <- round(cor(subset$WholeWeight, subset$Rings), 3)
+  cor_shucked <- round(cor(subset$ShuckedWeight, subset$Rings), 3)
+  cor_viscera <- round(cor(subset$VisceraWeight, subset$Rings), 3)
+  cor_shell   <- round(cor(subset$ShellWeight, subset$Rings), 3)
+  
+  result <- rbind(result, data.frame(
+    Sex = sex,
+    WholeWeight = cor_whole,
+    ShuckedWeight = cor_shucked,
+    VisceraWeight = cor_viscera,
+    ShellWeight = cor_shell
+  ))
+}
+
+print(result)
+```
+
+## e
+
+```{r p1e}
+# t-tests
+t_MF <- t.test(Rings ~ Sex, data = abalone, subset = Sex %in% c("M","F"))
+t_MI <- t.test(Rings ~ Sex, data = abalone, subset = Sex %in% c("M","I"))
+t_FI <- t.test(Rings ~ Sex, data = abalone, subset = Sex %in% c("F","I"))
+
+t_MF
+t_MI
+t_FI
+```
+
+According to the pairwise t-tests:
+
+1.  F vs M:
+
+-   t = 3.67, p = 0.00025 -\> significant. Females have slightly more rings than males
+
+2.  I vs M:
+
+-   t = -27.22, p \< 2.2e-16 -\> highly significant. Infants have far fewer rings than males
+
+3.  F vs I:
+
+-   t = 29.48, p \< 2.2e-16 -\> highly significant. Females have far more rings than infants
+
+# Problem 2 - Food Expenditure Data
+## a
+1. import data
+```{r p2a}
+# read in data
+expenditure <- read.csv("food_expenditure.csv")
+```
+
+## b
+1. simplify column names
+```{r p2b}
+colnames(expenditure) <- c(
+  "id",
+  "age",
+  "household_size",
+  "state",
+  "currency",
+  "total_food_exp",
+  "grocery_exp",
+  "dining_out_exp",
+  "misc_exp",
+  "dining_out_times",
+  "includes_alcohol",
+  "food_assistance_programs"
+)
+
+# look at the data frame
+head(expenditure)
+```
+
+## c
+```{r p2c}
+# number of rows before filtering
+n_before <- nrow(expenditure)
+
+# restrict to USD
+expenditure_usd <- subset(expenditure, currency == "USD")
+
+# number of rows after filtering
+n_after <- nrow(expenditure_usd)
+
+# show results
+cat("Number of observations before filtering:", n_before, "\n")
+cat("Number of observations after filtering:", n_after, "\n")
+```
+As we can see, the filtering works, since the number of rows had declined
+
+## d
+Rules:
+1. Exclude ages under 18: minors unlikely to be primarily responsible for household food expenditures
+2. Exclude ages greater than 100: likely mis-entries
+```{r p2d}
+expenditure_usd <- subset(expenditure_usd, age >= 18 & age <= 100)
+
+# see the filtering results
+cat("Number of observations after filtering rule d:", nrow(expenditure_usd), "\n")
+```
+
+## e
+Rules:
+1. Keep only valid U.S. states and DC
+2. Remove rows with NA or not matching states
+```{r p2e}
+# valid states (full names + DC)
+valid_states <- c(state.abb, "District of Columbia")
+
+expenditure_usd <- subset(expenditure_usd, state %in% valid_states)
+
+# see the filtering results
+cat("Number of observations after filtering rule e:", nrow(expenditure_usd), "\n")
+```
+
+## f
+Rules:
+1. non-negative
+2. total_food_exp should not be less than the sum of the components (grocery + dining out + misc)
+3. Regarding NA as 0
+```{r p2f}
+# regarding NA as 0
+expenditure_usd$total_food_exp[is.na(expenditure_usd$total_food_exp)] <- 0
+expenditure_usd$grocery_exp[is.na(expenditure_usd$grocery_exp)] <- 0
+expenditure_usd$dining_out_exp[is.na(expenditure_usd$dining_out_exp)] <- 0
+expenditure_usd$misc_exp[is.na(expenditure_usd$misc_exp)] <- 0
+
+# filter
+expenditure_usd <- subset(
+  expenditure_usd,
+  total_food_exp >= 0 &
+    grocery_exp >= 0 &
+    dining_out_exp >= 0 &
+    misc_exp >= 0 &
+    total_food_exp >= (grocery_exp + dining_out_exp + misc_exp)
+)
+
+# see the filtering results
+cat("Number of observations after filtering rule f:", nrow(expenditure_usd), "\n")
+```
+
+## g
+Rules:
+1. Must be an integer >= 0
+2. Exclude rows with unrealistic values (e.g. > 21 times in a week \approx >3/day).
+
+```{r p2g}
+expenditure_usd <- subset(
+  expenditure_usd,
+  dining_out_times >= 0 & dining_out_times <= 21
+)
+
+# see the filtering results
+cat("Number of observations after filtering rule f:", nrow(expenditure_usd), "\n")
+```
+
+## h
+Report final number of observations after filtering
+```{r p2h}
+n_final <- nrow(expenditure_usd)
+cat("Final number of observations after filtering:", n_final, "\n")
+```
+
+# Problem 3 - Palindromic Numbers
+## a
+1. Write function nextCollatz
+```{r nextCollatz}
+#' Function to realize collatz conjecture
+#'
+#' @param n A positive integer.
+#' @return A positive integer: the next number in the Collatz sequence.
+#' @examples
+#' nextCollatz(5)  # returns 16
+#' nextCollatz(16) # returns 8
+nextCollatz <- function(n) {
+  # Check for valid input
+  if (!is.numeric(n) || length(n) != 1 || n <= 0 || n != as.integer(n)) {
+    stop("Input must be a single positive integer.")
+  }
+  n <- as.integer(n)
+  
+  if (n %% 2 == 0) {
+    return(n / 2)
+  } else {
+    return(3 * n + 1)
+  }
+}
+```
+
+```{r p3a}
+# demonstrate
+nextCollatz(5)
+nextCollatz(16)
+```
+
+## b
+1. write a function: collatzSequence
+```{r collatzSequence}
+#' Generate the full Collatz sequence
+#' 
+#' @param n A positive integer.
+#' @return An integer vector containing the Collatz sequence from n to 1.
+#' 
+#' @examples
+#' collatzSequence(5)
+#' # [1]  5 16  8  4  2  1
+#'
+#' collatzSequence(19)
+#' # [1] 19 58 29 88 44 22 11 34 17 52 26 13 40 20 10  5 16  8  4  2  1
+
+collatzSequence <- function(n) {
+  # Check for valid input
+  if (!is.numeric(n) || length(n) != 1 || n <= 0 || n != as.integer(n)) {
+    stop("Input must be a single positive integer.")
+  }
+  
+  n <- as.integer(n)
+  seq <- c(n)
+  
+  while (n != 1) {
+    if (n %% 2 == 0) {
+      n <- n / 2
+    } else {
+      n <- 3 * n + 1
+    }
+    seq <- c(seq, n)
+  }
+  
+  return(seq)
+}
+```
+
+```{r p3b}
+# demonstrate
+collatzSequence(5)
+collatzSequence(19)
+```
+
+## c
+1. Find the shortest and logest Collatz sequence within [100, 500]
+```{r p3c}
+# lengths for [100, 500]
+starts <- 100:500
+lens <- sapply(starts, function(n) length(collatzSequence(n)))
+
+# shortest (tie -> lowest start)
+min_len <- min(lens)
+shortest_start <- min(starts[lens == min_len])
+
+# longest (tie -> lowest start)
+max_len <- max(lens)
+longest_start <- min(starts[lens == max_len])
+
+# results
+list(
+  shortest = list(
+    start = shortest_start,
+    length = min_len,
+    sequence = collatzSequence(shortest_start)
+  ),
+  longest = list(
+    start = longest_start,
+    length = max_len
+    # sequence = collatzSequence(longest_start) # uncomment if you want the vector
+  )
+)
+```
+As the results:
+
+1. Shortest: starts at 128, length 8
+- Sequence: 128, 64, 32, 16, 8, 4, 2, 1
+
+2. Longest: starts at 327, length 144
