@@ -10,7 +10,8 @@ format:
     embed-resources: true
 editor: visual
 ---
-For source files and data, see my GitHub repo: [STATS-506-Problem-Sets-01](https://github.com/CrispyShyYi/STATS-506-Problem-Sets/tree/main/set%231)
+
+For source files and data, see my GitHub repo: [STATS-506-Problem-Sets-01](https://github.com/CrispyShyYi/STATS-506-Problem-Sets/tree/main/set-1)
 
 # Problem 1 - Abalone Data
 
@@ -166,15 +167,20 @@ According to the pairwise t-tests:
 -   t = 29.48, p \< 2.2e-16 -\> highly significant. Females have far more rings than infants
 
 # Problem 2 - Food Expenditure Data
+
 ## a
-1. import data
+
+1.  import data
+
 ```{r p2a}
 # read in data
 expenditure <- read.csv("food_expenditure.csv")
 ```
 
 ## b
-1. simplify column names
+
+1.  simplify column names
+
 ```{r p2b}
 colnames(expenditure) <- c(
   "id",
@@ -196,6 +202,7 @@ head(expenditure)
 ```
 
 ## c
+
 ```{r p2c}
 # number of rows before filtering
 n_before <- nrow(expenditure)
@@ -210,12 +217,13 @@ n_after <- nrow(expenditure_usd)
 cat("Number of observations before filtering:", n_before, "\n")
 cat("Number of observations after filtering:", n_after, "\n")
 ```
+
 As we can see, the filtering works, since the number of rows had declined
 
 ## d
-Rules:
-1. Exclude ages under 18: minors unlikely to be primarily responsible for household food expenditures
-2. Exclude ages greater than 100: likely mis-entries
+
+Rules: 1. Exclude ages under 18: minors unlikely to be primarily responsible for household food expenditures 2. Exclude ages greater than 100: likely mis-entries
+
 ```{r p2d}
 expenditure_usd <- subset(expenditure_usd, age >= 18 & age <= 100)
 
@@ -224,9 +232,9 @@ cat("Number of observations after filtering rule d:", nrow(expenditure_usd), "\n
 ```
 
 ## e
-Rules:
-1. Keep only valid U.S. states and DC
-2. Remove rows with NA or not matching states
+
+Rules: 1. Keep only valid U.S. states and DC 2. Remove rows with NA or not matching states
+
 ```{r p2e}
 # valid states (full names + DC)
 valid_states <- c(state.abb, "District of Columbia")
@@ -238,10 +246,9 @@ cat("Number of observations after filtering rule e:", nrow(expenditure_usd), "\n
 ```
 
 ## f
-Rules:
-1. non-negative
-2. total_food_exp should not be less than the sum of the components (grocery + dining out + misc)
-3. Regarding NA as 0
+
+Rules: 1. non-negative 2. total_food_exp should not be less than the sum of the components (grocery + dining out + misc) 3. Regarding NA as 0
+
 ```{r p2f}
 # regarding NA as 0
 expenditure_usd$total_food_exp[is.na(expenditure_usd$total_food_exp)] <- 0
@@ -264,9 +271,8 @@ cat("Number of observations after filtering rule f:", nrow(expenditure_usd), "\n
 ```
 
 ## g
-Rules:
-1. Must be an integer >= 0
-2. Exclude rows with unrealistic values (e.g. > 21 times in a week \approx >3/day).
+
+Rules: 1. Must be an integer \>= 0 2. Exclude rows with unrealistic values (e.g. \> 21 times in a week \approx \>3/day).
 
 ```{r p2g}
 expenditure_usd <- subset(
@@ -279,15 +285,20 @@ cat("Number of observations after filtering rule f:", nrow(expenditure_usd), "\n
 ```
 
 ## h
+
 Report final number of observations after filtering
+
 ```{r p2h}
 n_final <- nrow(expenditure_usd)
 cat("Final number of observations after filtering:", n_final, "\n")
 ```
 
 # Problem 3 - Palindromic Numbers
+
 ## a
-1. Write function nextCollatz
+
+1.  Write function nextCollatz
+
 ```{r nextCollatz}
 #' Function to realize collatz conjecture
 #'
@@ -318,7 +329,9 @@ nextCollatz(16)
 ```
 
 ## b
-1. write a function: collatzSequence
+
+1.  write a function: collatzSequence
+
 ```{r collatzSequence}
 #' Generate the full Collatz sequence
 #' 
@@ -361,7 +374,9 @@ collatzSequence(19)
 ```
 
 ## c
-1. Find the shortest and logest Collatz sequence within [100, 500]
+
+1.  Find the shortest and logest Collatz sequence within \[100, 500\]
+
 ```{r p3c}
 # lengths for [100, 500]
 starts <- 100:500
@@ -389,9 +404,11 @@ list(
   )
 )
 ```
+
 As the results:
 
-1. Shortest: starts at 128, length 8
-- Sequence: 128, 64, 32, 16, 8, 4, 2, 1
+1.  Shortest: starts at 128, length 8
 
-2. Longest: starts at 327, length 144
+-   Sequence: 128, 64, 32, 16, 8, 4, 2, 1
+
+2.  Longest: starts at 327, length 144
