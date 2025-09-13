@@ -1,0 +1,450 @@
+---
+title: "Problem Set#2"
+author: "Jialiang Wu"
+format:
+  html:
+    theme: default
+    page-layout: article
+    code-fold: true
+    code-summary: "Show the code"
+    embed-resources: true
+editor: visual
+---
+
+For source files and data, see my GitHub repo: [STATS-506-Problem-Sets-02](https://github.com/CrispyShyYi/STATS-506-Problem-Sets/tree/main/set-2)
+
+# set-up
+
+```{r library}
+library(microbenchmark)
+library(dplyr)
+```
+
+# Problem Ser 1 - Modified Random walk
+
+## question a
+
+```{r q1a functions}
+#' Random Walk using Loop
+#'
+#' Implements a 1D random walk with given rules using a for loop.
+#'
+#' @param n Integer. Number of steps in the random walk.
+#' @return Final position after n steps.
+#' @examples
+#' random_walk1(10)
+random_walk1 <- function(n) {
+  pos <- 0
+  for (i in 1:n) {
+    step <- sample(c(-1, 1), 1) 
+    if (step == 1) {
+      # 5% chance to take +10 instead
+      if (runif(1) < 0.05) {
+        step <- 10
+      }
+    } else {
+      # 20% chance to take -3 instead
+      if (runif(1) < 0.20) {
+        step <- -3
+      }
+    }
+    pos <- pos + step
+  }
+  return(pos)
+}
+
+#' Random Walk using Vectorization
+#'
+#' Implements a 1D random walk using R's vectorized functions (no loops).
+#'
+#' @param n Integer. Number of steps in the random walk.
+#' @return Final position after n steps.
+#' @examples
+#' random_walk2(10)
+random_walk2 <- function(n) {
+  steps <- sample(c(-1, 1), n, replace = TRUE)  # base steps
+  
+  # replace +1 with +10 in 5% of cases
+  plus_idx <- which(steps == 1 & runif(n) < 0.05)
+  steps[plus_idx] <- 10
+  
+  # replace -1 with -3 in 20% of cases
+  minus_idx <- which(steps == -1 & runif(n) < 0.20)
+  steps[minus_idx] <- -3
+  
+  return(sum(steps))
+}
+
+#' Random Walk using Apply
+#'
+#' Implements a 1D random walk using one of the apply family functions.
+#'
+#' @param n Integer. Number of steps in the random walk.
+#' @return Final position after n steps.
+#' @examples
+#' random_walk3(10)
+random_walk3 <- function(n) {
+  steps <- sapply(1:n, function(i) {
+    step <- sample(c(-1, 1), 1)
+    if (step == 1) {
+      if (runif(1) < 0.05) return(10) else return(1)
+    } else {
+      if (runif(1) < 0.20) return(-3) else return(-1)
+    }
+  })
+  return(sum(steps))
+}
+```
+
+demonstrate three functions use following cases
+
+```{r q1a demonstrate}
+random_walk1(10)
+random_walk2(10)
+random_walk3(10)
+random_walk1(1000)
+random_walk2(1000)
+random_walk3(1000)
+```
+
+## question b
+
+update functions to receive extra parameters for set random steps
+
+```{r q1b}
+#' Make RNG streams for the random walk
+#'
+#' @param n Integer. Number of steps.
+#' @param seed Integer or NULL. If provided, sets the RNG seed.
+#' @return A list with three numeric vectors in [0,1): dir_u, plus_u, minus_u
+#' @examples
+#' streams <- make_streams(10, seed = 123)
+make_streams <- function(n, seed = NULL) {
+  if (!is.null(seed)) set.seed(seed)
+  list(
+    dir_u   = runif(n),  # for base +/-1 choice
+    plus_u  = runif(n),  # for the "+10 with prob 0.05" test (only used when base is +1)
+    minus_u = runif(n)   # for the "-3 with prob 0.20" test (only used when base is -1)
+  )
+}
+
+#' Random Walk (loop)
+#'
+#' @param n Integer. Number of steps.
+#' @param dir_u,plus_u,minus_u Optional numeric vectors in [0,1) of length n.
+#'   If NULL, fresh random numbers are generated internally.
+#' @return Final position after n steps.
+#' @examples
+#' s <- make_streams(10, seed = 123)
+#' random_walk1(10, s$dir_u, s$plus_u, s$minus_u)  # controlled
+random_walk1 <- function(n, dir_u = NULL, plus_u = NULL, minus_u = NULL) {
+  if (is.null(dir_u) || is.null(plus_u) || is.null(minus_u)) {
+    tmp <- make_streams(n)
+    dir_u   <- tmp$dir_u
+    plus_u  <- tmp$plus_u
+    minus_u <- tmp$minus_u
+  }
+  pos <- 0
+  for (i in seq_len(n)) {
+    base <- if (dir_u[i] < 0.5) -1 else 1
+    if (base == 1) {
+      step <- if (plus_u[i] < 0.05) 10 else 1
+    } else {
+      step <- if (minus_u[i] < 0.20) -3 else -1
+    }
+    pos <- pos + step
+  }
+  pos
+}
+
+#' Random Walk (vectorized)
+#'
+#' @param n Integer. Number of steps.
+#' @param dir_u,plus_u,minus_u Optional numeric vectors in [0,1) of length n.
+#'   If NULL, fresh random numbers are generated internally.
+#' @return Final position after n steps.
+#' @examples
+#' s <- make_streams(10, seed = 123)
+#' random_walk2(10, s$dir_u, s$plus_u, s$minus_u)
+random_walk2 <- function(n, dir_u = NULL, plus_u = NULL, minus_u = NULL) {
+  if (is.null(dir_u) || is.null(plus_u) || is.null(minus_u)) {
+    tmp <- make_streams(n)
+    dir_u   <- tmp$dir_u
+    plus_u  <- tmp$plus_u
+    minus_u <- tmp$minus_u
+  }
+  base <- ifelse(dir_u < 0.5, -1, 1)
+  steps <- ifelse(
+    base == 1,
+    ifelse(plus_u < 0.05, 10, 1),
+    ifelse(minus_u < 0.20, -3, -1)
+  )
+  sum(steps)
+}
+
+#' Random Walk (apply)
+#'
+#' @param n Integer. Number of steps.
+#' @param dir_u,plus_u,minus_u Optional numeric vectors in [0,1) of length n.
+#'   If NULL, fresh random numbers are generated internally.
+#' @return Final position after n steps.
+#' @examples
+#' s <- make_streams(10, seed = 123)
+#' random_walk3(10, s$dir_u, s$plus_u, s$minus_u)
+random_walk3 <- function(n, dir_u = NULL, plus_u = NULL, minus_u = NULL) {
+  if (is.null(dir_u) || is.null(plus_u) || is.null(minus_u)) {
+    tmp <- make_streams(n)
+    dir_u   <- tmp$dir_u
+    plus_u  <- tmp$plus_u
+    minus_u <- tmp$minus_u
+  }
+  steps <- sapply(seq_len(n), function(i) {
+    base <- if (dir_u[i] < 0.5) -1 else 1
+    if (base == 1) {
+      if (plus_u[i] < 0.05) 10 else 1
+    } else {
+      if (minus_u[i] < 0.20) -3 else -1
+    }
+  })
+  sum(steps)
+}
+```
+
+demonstrate these three functions have the same results
+
+```{r q1b demonstrate}
+## n = 10
+s10 <- make_streams(10, seed = 42)
+v1_10 <- random_walk1(10,   s10$dir_u, s10$plus_u, s10$minus_u)
+v2_10 <- random_walk2(10, s10$dir_u, s10$plus_u, s10$minus_u)
+v3_10 <- random_walk3(10,  s10$dir_u, s10$plus_u, s10$minus_u)
+
+cat("n=10 -> loop:", v1_10, " vectorized:", v2_10, " apply:", v3_10, "\n")
+
+## n = 1000
+s1k <- make_streams(1000, seed = 42)
+v1_1k <- random_walk1(1000,   s1k$dir_u, s1k$plus_u, s1k$minus_u)
+v2_1k <- random_walk2(1000, s1k$dir_u, s1k$plus_u, s1k$minus_u)
+v3_1k <- random_walk3(1000,  s1k$dir_u, s1k$plus_u, s1k$minus_u)
+
+cat("n=1000 -> loop:", v1_1k, " vectorized:", v2_1k, " apply:", v3_1k, "\n")
+```
+
+## question c
+
+```{r q1c}
+run_bench <- function(n, seed = 42) {
+  s <- make_streams(n, seed = seed)  # same streams for all runs
+  microbenchmark(
+    loop = random_walk1(n, s$dir_u, s$plus_u, s$minus_u),
+    vectorized = random_walk2(n, s$dir_u, s$plus_u, s$minus_u),
+    apply = random_walk3(n, s$dir_u, s$plus_u, s$minus_u)
+  )
+}
+
+# case n = 10,000
+bench_1k <- run_bench(10000)
+print(bench_1k)
+```
+
+According to the benchmark table, we can conclude that the speed vectorization \> loop \> apply.
+
+This is because the vectorization is parallel computation using vector, while loop and apply both use loop to go through every pos one by one, which is more time-consuming. For the apply approach, it has extra works for every iterations, like function calls, taking extra time to finish the same computation.
+
+## question d
+
+Use Monte Carlo simulation
+
+```{r q1d}
+prob_sum_zero <- function(n, trials = 1e6, seed = 123) {
+  set.seed(seed)
+  # Draw base directions: +1 or -1 (0.5 each)
+  base <- sample(c(1L, -1L), size = n * trials, replace = TRUE)
+  u <- runif(n * trials)
+  # Apply replacements in-place
+  # with prob 0.05, +1 becomes +10 
+  base[base == 1L & u < 0.05]  <- 10L
+  base[base == 1L & u >= 0.05] <- 1L
+  # with prob 0.20, -1 becomes -3 
+  base[base == -1L & u < 0.20]  <- -3L
+  base[base == -1L & u >= 0.20] <- -1L
+  # Reshape to trials x n and sum rows
+  mat <- matrix(base, nrow = trials, byrow = TRUE)
+  hits <- sum(rowSums(mat) == 0L)
+  p_hat <- hits / trials
+  c(estimate = p_hat, hits = hits, trials = trials)
+}
+
+set.seed(42)
+res10   <- prob_sum_zero(10,   trials = 2e6)     # large trials for tight CI
+res100  <- prob_sum_zero(100,  trials = 5e5)
+res1000 <- prob_sum_zero(1000, trials = 2e5)
+
+print(res10)
+print(res100)
+print(res1000)
+
+```
+
+According to the Monte Carlo simulation:
+
+-   $n = 10$: $\approx 0.131$
+
+-   $n = 100$: $\approx 0.0197$
+
+-   $n = 1000$: $\approx 0.00588$
+
+\newpage
+
+# Problem 2 - Mean of Mixture of Distributions
+
+```{r q2}
+set.seed(123)
+days <- 1e5  # number of simulated days
+
+# build a days x 24 matrix of hourly counts
+sim <- cbind(
+  matrix(rpois(days*8, 1),  ncol = 8),                 # 0–7
+  rnorm(days, 60, sqrt(12)),                           # 8 (rush)
+  matrix(rpois(days*8, 8),  ncol = 8),                 # 9–16
+  rnorm(days, 60, sqrt(12)),                           # 17 (rush)
+  matrix(rpois(days*6, 12), ncol = 6)                  # 18–23
+)
+
+# replace rush-hour non-negative integers with 0
+sim[, 9]  <- pmax(0, round(sim[, 9]))   # 8am
+sim[, 18] <- pmax(0, round(sim[, 18]))  # 5pm
+
+# Monte Carlo estimates
+total_per_day <- rowSums(sim)
+avg_per_day   <- mean(total_per_day)
+
+cat("The average number of cars passing the intersection is approximate to", avg_per_day)
+```
+
+\newpage
+
+# Problem 3 - Linear Regression
+
+set-up
+
+```{r load-data}
+youtube <- read.csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-03-02/youtube.csv')
+```
+
+## question a
+
+According to the column names of the youtube data set, I think these following columns need to de-identify:
+
+"brand", "superbowl_ads_dot_com_url", "youtube_url", "id", "etag", "published_at", "channel_title", "title", "description", and "thumbnail"
+
+```{r q3a}
+youtube_clean <- youtube %>%
+  select(
+    -brand,
+    -superbowl_ads_dot_com_url,
+    -youtube_url,
+    -id,
+    -etag,
+    -published_at,
+    -channel_title,
+    -title,
+    -description,
+    -thumbnail
+  )
+
+cat("And after moving these columns, the new dim will be:", dim(youtube_clean)[2])
+```
+
+## question b
+```{r q3b}
+# view distribution
+par(mfrow = c(2,3))  # 一次性画多个直方图
+hist(youtube$view_count, main = "View count", xlab = "Views")
+hist(youtube$like_count, main = "Like count", xlab = "Likes")
+hist(youtube$dislike_count, main = "Dislike count", xlab = "Dislikes")
+hist(youtube$favorite_count, main = "Favorite count", xlab = "Favorites")
+hist(youtube$comment_count, main = "Comment count", xlab = "Comments")
+
+```
+
+According to the plots:
+
+- View count / Like count / Dislike count / Comment count: right skewed, and they need transformation before using as an outcome in a linear regression. So they fall in to category ii)
+
+- Favorite count: only contains 0 and NAs, so it falls in the category iii), which can't be used as an outcome in a linear regression.
+
+## question c
+```{r q3c}
+# transformed outcomes
+youtube <- youtube %>%
+  mutate(
+    log_view = log1p(view_count),
+    log_like = log1p(like_count),
+    log_dislike = log1p(dislike_count),
+    log_comment = log1p(comment_count)
+  )
+
+# List of outcomes
+outcomes <- c("log_view", "log_like", 
+              "log_dislike", "log_comment")
+
+# Fit a lm for each outcome
+models <- lapply(outcomes, function(y) {
+  formula <- as.formula(
+    paste(y, "~ funny + show_product_quickly + patriotic + celebrity + danger + animals + use_sex + year")
+  )
+  lm(formula, data = youtube)
+})
+
+# Name the models
+names(models) <- outcomes
+
+# Summaries
+lapply(models, summary)
+```
+
+According to the summary table:
+
+- View Count: all ad-categorical features and year have $p > 0.1$, meaning there is no features are significant.
+
+- Like Count: Year has a $p = 0.0157$, which is less than 0.05, and estimate = 0.07685. This indicates that in more recent years, the like count has more
+
+- Dislike Count: The year feature has an estimate = 0.092, with $p < 0.001$. This indicates that the dislikes have grown over time
+
+- Comment Count: the year features has an estimate = 0.05034, with $p < 0.1$. And the patriotic feature has an estimate = 0.66698, with a $p < 0.1$. These indicates that there are weak evidences to support that time and patriotism increase comments.
+
+## question d
+```{r q3d}
+## Build the frame (log outcome + predictors)
+df <- within(youtube, {
+  log_view_count <- log1p(view_count)
+})
+
+## keep variables, drop rows with any NA
+df <- df[, c("log_view_count","funny","show_product_quickly","patriotic",
+             "celebrity","danger","animals","use_sex","year")]
+df <- df[complete.cases(df), ]
+
+## Design matrix X (with intercept) and response y 
+X <- model.matrix(~ funny + show_product_quickly + patriotic +
+                    celebrity + danger + animals + use_sex + year,
+                  data = df)
+y <- df$log_view_count
+
+n <- nrow(X); p <- ncol(X)
+
+## OLS via normal equations
+XtX <- crossprod(X)             # t(X) %*% X
+Xty <- crossprod(X, y)          # t(X) %*% y
+beta_hat <- solve(XtX, Xty)     # coefficients
+
+# use lm
+fit_lm <- lm(log1p(view_count) ~ funny + show_product_quickly + patriotic +
+               celebrity + danger + animals + use_sex + year,
+             data = youtube)
+
+all.equal(unname(coef(fit_lm)), as.numeric(beta_hat))
+```
+
+Both mannually computation and calculation using lm() get the same results.
