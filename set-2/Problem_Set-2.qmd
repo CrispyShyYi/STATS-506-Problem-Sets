@@ -357,6 +357,7 @@ cat("And after moving these columns, the new dim will be:", dim(youtube_clean)[2
 ```
 
 ## question b
+
 ```{r q3b}
 # view distribution
 par(mfrow = c(2,3))  # 一次性画多个直方图
@@ -370,11 +371,12 @@ hist(youtube$comment_count, main = "Comment count", xlab = "Comments")
 
 According to the plots:
 
-- View count / Like count / Dislike count / Comment count: right skewed, and they need transformation before using as an outcome in a linear regression. So they fall in to category ii)
+-   View count / Like count / Dislike count / Comment count: right skewed, and they need transformation before using as an outcome in a linear regression. So they fall in to category ii)
 
-- Favorite count: only contains 0 and NAs, so it falls in the category iii), which can't be used as an outcome in a linear regression.
+-   Favorite count: only contains 0 and NAs, so it falls in the category iii), which can't be used as an outcome in a linear regression.
 
 ## question c
+
 ```{r q3c}
 # transformed outcomes
 youtube <- youtube %>%
@@ -406,15 +408,16 @@ lapply(models, summary)
 
 According to the summary table:
 
-- View Count: all ad-categorical features and year have $p > 0.1$, meaning there is no features are significant.
+-   View Count: all ad-categorical features and year have $p > 0.1$, meaning there is no features are significant.
 
-- Like Count: Year has a $p = 0.0157$, which is less than 0.05, and estimate = 0.07685. This indicates that in more recent years, the like count has more
+-   Like Count: Year has a $p = 0.0157$, which is less than 0.05, and estimate = 0.07685. This indicates that in more recent years, the like count has more
 
-- Dislike Count: The year feature has an estimate = 0.092, with $p < 0.001$. This indicates that the dislikes have grown over time
+-   Dislike Count: The year feature has an estimate = 0.092, with $p < 0.001$. This indicates that the dislikes have grown over time
 
-- Comment Count: the year features has an estimate = 0.05034, with $p < 0.1$. And the patriotic feature has an estimate = 0.66698, with a $p < 0.1$. These indicates that there are weak evidences to support that time and patriotism increase comments.
+-   Comment Count: the year features has an estimate = 0.05034, with $p < 0.1$. And the patriotic feature has an estimate = 0.66698, with a $p < 0.1$. These indicates that there are weak evidences to support that time and patriotism increase comments.
 
 ## question d
+
 ```{r q3d}
 ## Build the frame (log outcome + predictors)
 df <- within(youtube, {

@@ -3247,42 +3247,42 @@ Attaching package: &#39;dplyr&#39;</code></pre>
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">random_walk1</span>(<span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] -2</code></pre>
+<pre><code>[1] 1</code></pre>
 </div>
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">random_walk2</span>(<span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 7</code></pre>
+<pre><code>[1] 2</code></pre>
 </div>
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">random_walk3</span>(<span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] -2</code></pre>
+<pre><code>[1] 11</code></pre>
 </div>
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">random_walk1</span>(<span class="dv">1000</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 33</code></pre>
+<pre><code>[1] 104</code></pre>
 </div>
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">random_walk2</span>(<span class="dv">1000</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 95</code></pre>
+<pre><code>[1] 15</code></pre>
 </div>
 <details class="code-fold">
 <summary>Show the code</summary>
 <div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">random_walk3</span>(<span class="dv">1000</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] -2</code></pre>
+<pre><code>[1] 37</code></pre>
 </div>
 </div>
 </section>
@@ -3448,9 +3448,9 @@ Attaching package: &#39;dplyr&#39;</code></pre>
 <div class="cell-output cell-output-stdout">
 <pre><code>Unit: microseconds
        expr      min        lq      mean    median        uq      max neval
-       loop  503.849  529.4945  549.1770  540.7695  557.5795  747.471   100
- vectorized  473.058  536.7720  598.9973  572.9955  607.4765 1982.924   100
-      apply 3632.108 3770.7700 4175.1030 3873.4750 4087.2080 8483.269   100</code></pre>
+       loop  492.246  505.1200  520.8140  514.0785  537.1205  566.661   100
+ vectorized  447.679  499.8105  523.0513  518.4860  546.3250  647.103   100
+      apply 3527.640 3614.5395 3912.9441 3677.4130 3780.6305 7467.822   100</code></pre>
 </div>
 </div>
 <p>According to the benchmark table, we can conclude that the speed vectorization &gt; loop &gt; apply.</p>
