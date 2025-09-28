@@ -12,4 +12,291 @@ editor: visual
 ---
 
 For source files and data, see my GitHub repo:
-[STATS-506-Problem-Sets-03]()
+[STATS-506-Problem-Sets-03](https://github.com/CrispyShyYi/STATS-506-Problem-Sets/tree/main/set-3)
+
+## Set up
+```{r}
+library(knitr)
+library(dplyr)
+library(haven) # xpt data set
+library(RSQLite)
+library(DBI) 
+library(microbenchmark)
+```
+
+## Question 1
+
+### question 1-a
+
+load two data sets and inner merge.
+
+```{r q1a}
+aux <- haven::read_xpt("AUX_I.xpt")
+demo <- haven::read_xpt("DEMO_I.xpt")
+
+# check the SEQN is unique 
+stopifnot(n_distinct(demo$SEQN) == nrow(demo))
+stopifnot(n_distinct(aux$SEQN)  == nrow(aux))
+
+# merge
+merged <- demo %>% inner_join(aux, by = "SEQN")
+
+cat("num of rows of DEMO_I:", nrow(demo), "\n")
+cat("num of rows of AUX_I:", nrow(aux),  "\n")
+cat("num of merged `data.frame`:", nrow(merged), "\n")
+```
+
+### question 1-b
+```{r q1b}
+# convert to category according to the doc
+cleaned <- merged %>%
+  mutate(
+    # Gender (1=Male, 2=Female)
+    Gender = factor(RIAGENDR,
+                    levels = c(1, 2),
+                    labels = c("Male", "Female")),
+    
+    # Citizenship (1=Citizen by birth or naturalization, 2=Not a citizen of the US, 7=Not a citizen)
+    Citizenship = na_if(DMDCITZN, 7),   # 7 = Refused
+    Citizenship = na_if(Citizenship, 9), # 9 = Don't know
+    Citizenship = factor(Citizenship,
+                         levels = c(1, 2),
+                         labels = c("US Citizen (birth/naturalization)",
+                                    "Not a citizen of the US")),
+    
+    # Number of children 5 years or younger in the household
+    Num5Children = factor(DMDHHSZA,
+                         levels = c(0, 1, 2, 3),
+                         labels = c("0", "1", "2", "3 or more")),
+    
+    # Annual household income (INDHHIN2)
+    Income_code = INDHHIN2,
+    Income_code = na_if(Income_code, 77),   # 77 = Refused
+    Income_code = na_if(Income_code, 99),   # 99 = Don't know
+    Income_code = factor(
+      Income_code,
+      levels = c(1,2,3,4,13,5,6,7,8,9,10,14,15,12),
+      labels = c(
+        "$ 0 to $ 4,999", "$ 5,000 to $ 9,999", "$10,000 to $14,999", "$15,000 to $19,999", "Under $20,000",
+        "$20,000 to $24,999", "$25,000 to $34,999", "$35,000 to $44,999", "$45,000 to $54,999",
+        "$55,000 to $64,999", "	$65,000 to $74,999", "$75,000 to $99,999", "$100,000 and Over", 
+        "$20,000 and Over"
+      )
+    )
+  )
+```
+
+### question 1-c
+```{r q1c}
+# Poisson regression model 1
+
+# Poisson regression model 2
+
+# Poisson regression model 3
+
+# Poisson regression model 4
+```
+
+### question 1-d
+```{r q1d}
+
+```
+
+## Question 2
+connect db
+
+```{r connect}
+db_path <- "sakila_master.db"
+sakila <- dbConnect(RSQLite::SQLite(), db_path)
+
+# List tables 
+dbListTables(sakila)
+```
+
+### question 2-a
+```{r q2a}
+# dive into customer table
+dbListFields(sakila, "customer")
+
+# use SQL get table, then use R
+customer_df <- dbGetQuery(sakila, "SELECT customer_id, store_id, active FROM customer")
+# check types
+str(customer_df)
+
+approach_r_1 <- function() {
+  customer_df <- dbGetQuery(
+    sakila,
+    "SELECT customer_id, store_id, active FROM customer"
+  )
+  customer_df %>%
+    mutate(active_num = as.integer(active)) %>%   # "1"/"0" -> 1/0
+    group_by(store_id) %>%
+    summarise(
+      total_customers  = n(),
+      active_customers = sum(active_num, na.rm = TRUE),
+      pct_active       = round(100 * mean(active_num, na.rm = TRUE), 2),
+      .groups = "drop"
+    ) %>%
+    arrange(store_id)
+}
+
+# use SQL
+approach_sql_1 <- function() {
+  dbGetQuery(
+    sakila,
+    "
+    SELECT
+      store_id,
+      COUNT(customer_id) AS total_customers,
+      SUM(active) AS active_customers,
+      ROUND(100.0 * SUM(active ) / COUNT(customer_id), 2) AS pct_active
+    FROM customer
+    GROUP BY store_id
+    "
+  )
+}
+
+# display results
+res_r_1   <- approach_r_1()
+res_sql_1 <- approach_sql_1()
+
+print(res_r_1)
+print(res_sql_1)
+
+# microbenchmark comparison
+microbenchmark(
+  R_aggregate   = approach_r_1(),
+  SQL_aggregate = approach_sql_1()
+)
+```
+
+According to the benchmark comparision, the SQL run faster than the SQL + R strategy
+
+### question 2-b
+```{r q2b}
+# dive into corresponding tables
+dbListFields(sakila, "staff")
+dbListFields(sakila, "address")
+dbListFields(sakila, "city")
+dbListFields(sakila, "country")
+
+# SQL + R
+approach_r_2 <- function() {
+  staff_df   <- dbGetQuery(sakila, "SELECT staff_id, first_name, last_name, address_id FROM staff")
+  address_df <- dbGetQuery(sakila, "SELECT address_id, city_id FROM address")
+  city_df    <- dbGetQuery(sakila, "SELECT city_id, country_id FROM city")
+  country_df <- dbGetQuery(sakila, "SELECT country_id, country FROM country")
+  
+  staff_country_r <- staff_df %>%
+  inner_join(address_df, by = "address_id") %>%
+  inner_join(city_df, by = "city_id") %>%
+  inner_join(country_df, by = "country_id") %>%
+  transmute(staff_name = paste(first_name, last_name),
+            country)
+}
+
+# SQL
+approach_sql_2 <- function() {
+  dbGetQuery(
+    sakila,
+    "
+    SELECT s.first_name || ' ' || s.last_name AS staff_name,
+       ctry.country AS country
+    FROM staff s
+    INNER JOIN address a ON s.address_id = a.address_id
+    INNER JOIN city c ON a.city_id = c.city_id
+    INNER JOIN country ctry ON c.country_id = ctry.country_id
+    "
+  )
+}
+
+# display results
+res_r_2   <- approach_r_2()
+res_sql_2 <- approach_sql_2()
+
+print(res_r_2)
+print(res_sql_2)
+
+# benchmark comparison
+microbenchmark(
+  R_aggregate   = approach_r_2(),
+  SQL_aggregate = approach_sql_2()
+)
+```
+
+According to the benchmark comparasion, the SQL run faster than the SQL + R strategy
+
+### question 2-c
+```{r q2c}
+# dive into corresponding tables
+dbListFields(sakila, "film")
+dbListFields(sakila, "inventory")
+dbListFields(sakila, "rental")
+dbListFields(sakila, "payment")
+
+# SQL + R
+approach_r_3 <- function() {
+  film_df      <- dbGetQuery(sakila, "SELECT film_id, title FROM film")
+  inventory_df <- dbGetQuery(sakila, "SELECT inventory_id, film_id FROM inventory")
+  rental_df    <- dbGetQuery(sakila, "SELECT rental_id, inventory_id FROM rental")
+  payment_df   <- dbGetQuery(sakila, "SELECT rental_id, amount FROM payment")
+  
+  film_rev <- film_df %>%
+    inner_join(inventory_df, by = "film_id") %>%
+    inner_join(rental_df,    by = "inventory_id") %>%
+    inner_join(payment_df,   by = "rental_id") %>%
+    group_by(film_id, title) %>%
+    summarise(film_revenue = sum(amount, na.rm = TRUE), .groups = "drop")
+  
+  max_rev <- max(film_rev$film_revenue, na.rm = TRUE)
+  
+  top_films <- film_rev %>%
+    filter(film_revenue == max_rev) %>%
+    arrange(title)
+  
+  top_films
+}
+
+# SQL
+approach_sql_3 <- function() {
+  dbGetQuery(
+    sakila,
+    "
+    SELECT f.title,
+       SUM(p.amount) AS film_revenue
+    FROM film f
+    JOIN inventory i ON i.film_id = f.film_id
+    JOIN rental    r ON r.inventory_id = i.inventory_id
+    JOIN payment   p ON p.rental_id    = r.rental_id
+    GROUP BY f.film_id, f.title
+    HAVING SUM(p.amount) = (
+      SELECT MAX(film_revenue)
+      FROM (
+        SELECT SUM(p2.amount) AS film_revenue
+        FROM film f2
+        JOIN inventory i2 ON i2.film_id = f2.film_id
+        JOIN rental    r2 ON r2.inventory_id = i2.inventory_id
+        JOIN payment   p2 ON p2.rental_id    = r2.rental_id
+        GROUP BY f2.film_id
+      )
+    )
+    ORDER BY f.title
+    "
+  )
+}
+
+# display results
+res_r_3   <- approach_r_3()
+res_sql_3 <- approach_sql_3()
+
+print(res_r_3)
+print(res_sql_3)
+
+# benchmark comparison
+microbenchmark(
+  R_aggregate   = approach_r_3(),
+  SQL_aggregate = approach_sql_3()
+)
+```
+
+According to the benchmark comparasion, the SQL + R strategy run faster than the SQL
