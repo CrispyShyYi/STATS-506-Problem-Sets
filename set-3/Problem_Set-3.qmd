@@ -19,9 +19,12 @@ For source files and data, see my GitHub repo:
 library(knitr)
 library(dplyr)
 library(haven) # xpt data set
+library(pscl)
 library(RSQLite)
 library(DBI) 
 library(microbenchmark)
+library(stringr)
+library(ggplot2)
 ```
 
 ## Question 1
@@ -47,16 +50,24 @@ cat("num of merged `data.frame`:", nrow(merged), "\n")
 ```
 
 ### question 1-b
+
+In this case, there is a special column: INDHHIN2 - Annual household income. I decided to seperate into two groups: `Under $20,000` and `$20,000 and Over`, which could include all the data.
+
 ```{r q1b}
 # convert to category according to the doc
 cleaned <- merged %>%
-  mutate(
+  transmute(
+    # targets
+    Tympanometric_width_of_right_ear = AUXTWIDR,
+    Tympanometric_width_of_left_ear = AUXTWIDL,
+    
+    # predictors
     # Gender (1=Male, 2=Female)
     Gender = factor(RIAGENDR,
                     levels = c(1, 2),
                     labels = c("Male", "Female")),
     
-    # Citizenship (1=Citizen by birth or naturalization, 2=Not a citizen of the US, 7=Not a citizen)
+    # Citizenship (1=Citizen by birth or naturalization, 2=Not a citizen of the US)
     Citizenship = na_if(DMDCITZN, 7),   # 7 = Refused
     Citizenship = na_if(Citizenship, 9), # 9 = Don't know
     Citizenship = factor(Citizenship,
@@ -64,43 +75,128 @@ cleaned <- merged %>%
                          labels = c("US Citizen (birth/naturalization)",
                                     "Not a citizen of the US")),
     
-    # Number of children 5 years or younger in the household
+    # Number of children 5 years or younger in the household ('0'=0, '1'=1, '2'=2, '3'=3 or more)
     Num5Children = factor(DMDHHSZA,
                          levels = c(0, 1, 2, 3),
                          labels = c("0", "1", "2", "3 or more")),
     
     # Annual household income (INDHHIN2)
-    Income_code = INDHHIN2,
-    Income_code = na_if(Income_code, 77),   # 77 = Refused
-    Income_code = na_if(Income_code, 99),   # 99 = Don't know
-    Income_code = factor(
-      Income_code,
-      levels = c(1,2,3,4,13,5,6,7,8,9,10,14,15,12),
-      labels = c(
-        "$ 0 to $ 4,999", "$ 5,000 to $ 9,999", "$10,000 to $14,999", "$15,000 to $19,999", "Under $20,000",
-        "$20,000 to $24,999", "$25,000 to $34,999", "$35,000 to $44,999", "$45,000 to $54,999",
-        "$55,000 to $64,999", "	$65,000 to $74,999", "$75,000 to $99,999", "$100,000 and Over", 
-        "$20,000 and Over"
-      )
-    )
+    AnnualHouseIncome = case_when(
+      INDHHIN2 %in% c(1, 2, 3, 4, 13) ~ "Under $20,000",
+      INDHHIN2 %in% c(5, 6, 7, 8, 9, 10, 14, 15, 12) ~ "$20,000 and Over",
+      INDHHIN2 %in% c(77, 99) ~ NA_character_,  # Refused / Don't know -> NA
+      TRUE ~ NA_character_                      # missing -> NA
+    ),
+    AnnualHouseIncome = factor(AnnualHouseIncome, 
+                          levels = c("Under $20,000", "$20,000 and Over"))
   )
+
+# check cleaned dataframe
+str(cleaned)
 ```
 
 ### question 1-c
 ```{r q1c}
-# Poisson regression model 1
+# transfer Num5Children and AnnualHouseIncome to continuous
+cleaned <- cleaned %>%
+  mutate(
+    # Num5Children to int
+    Num5Children_n = case_when(
+      Num5Children == "0" ~ 0,
+      Num5Children == "1" ~ 1,
+      Num5Children == "2" ~ 2,
+      Num5Children == "3 or more" ~ 3,
+      TRUE ~ NA_real_
+    ),
+    # AnnualHouseIncome to int
+    AnnualHouseIncome_n = case_when(
+      AnnualHouseIncome == "Under $20,000" ~ 0,
+      AnnualHouseIncome == "$20,000 and Over" ~ 1,
+      TRUE ~ NA_real_
+    )
+  )
 
-# Poisson regression model 2
+# Poisson regression model 1 - Right ear: gender
+R1 <- glm(
+  Tympanometric_width_of_right_ear ~ Gender,
+  family = poisson(link = "log"),
+  data = cleaned
+)
+summary(R1)
 
-# Poisson regression model 3
+# Poisson regression model 2 - Right ear: gender, citizenship status (as categorical), number of children (as continuous), annual household income (as continuous)
+R2 <- glm(
+  Tympanometric_width_of_right_ear ~ Gender + Citizenship + Num5Children_n + AnnualHouseIncome_n,
+  family = poisson(link = "log"),
+  data = cleaned
+)
+summary(R2)
 
-# Poisson regression model 4
+# Poisson regression model 3 - Left ear: gender
+L1 <- glm(
+  Tympanometric_width_of_left_ear ~ Gender,
+  family = poisson(link = "log"),
+  data = cleaned
+)
+summary(L1)
+
+# Poisson regression model 4 - Left ear: gender, citizenship status (as categorical), number of children (as continuous), annual household income (as continuous)
+L2 <- glm(
+  Tympanometric_width_of_left_ear ~ Gender + Citizenship + Num5Children_n + AnnualHouseIncome_n,
+  family = poisson(link = "log"),
+  data = cleaned
+)
+summary(L2)
+
+# help function - get incidence risk ratios, N, AIC and pseudo-R^2
+get_model_info <- function(model) {
+  irr <- exp(coef(model))
+  ci <- exp(confint(model))
+  tibble(
+    term = names(irr),
+    IRR = irr,
+    CI_low = ci[,1],
+    CI_high = ci[,2]
+  ) %>%
+    mutate(
+      N = nobs(model),
+      AIC = AIC(model),
+      PseudoR2 = pscl::pR2(model)["McFadden"]
+    )
+}
+
+# get information
+R1_res <- get_model_info(R1)
+R2_res <- get_model_info(R2)
+L1_res <- get_model_info(L1)
+L2_res <- get_model_info(L2)
+
+# combine information
+all_results <- bind_rows(
+  R1_res %>% mutate(Model = "Right ear - Gender"),
+  R2_res %>% mutate(Model = "Right ear - Full"),
+  L1_res %>% mutate(Model = "Left ear - Gender"),
+  L2_res %>% mutate(Model = "Left ear - Full")
+)
+
+kable(all_results, digits = 3, caption = "Poisson regression results: Incidence Rate Ratios (IRR)")
 ```
 
 ### question 1-d
 ```{r q1d}
+# IRR
+print("Coefficient of the L2 Model")
+exp(coef(L2)) 
 
+# confidence interval
+print("Confidence Interval of the coefficients")
+exp(confint(L2)) 
+
+# summary table
+summary(L2)
 ```
+
+In Model 2L, gender has a significant effect on the Tympanometric width of the left ear. For females compared to males, the estimated log(IRR) is 0.015 (SE = 0.0035, z = 4.41, p < 0.001). Transformed to the incidence risk ratio scale, this corresponds to an IRR of 1.016, meaning that females have, on average, about a 1.6% higher expected Tympanometric width than males, after controlling for citizenship status, number of children, and annual household income.
 
 ## Question 2
 connect db
@@ -300,3 +396,108 @@ microbenchmark(
 ```
 
 According to the benchmark comparasion, the SQL + R strategy run faster than the SQL
+
+## Question 3
+
+set up data frame
+```{r Australia-500Records}
+# load data set
+Australia <- read.csv("au-500.csv")
+```
+
+### question 3-a
+```{r q3a}
+# count web ends with ".com"
+pattern <- "\\.com\\s*$"
+
+is_com <- grepl(pattern, Australia$web, ignore.case = TRUE)
+pct_com <- mean(is_com, na.rm = TRUE) * 100
+cat("There is", pct_com, "% of websites are .com’s")
+```
+
+### question 3-b
+```{r q3b}
+Australia %>%
+  count(domain = sub(".*@", "", email)) %>%
+  arrange(desc(n)) %>%
+  slice(1)
+```
+According to the result, the hotmail.com is the most used domain
+
+### question 3-c
+```{r q3c}
+# contain a non-alphabetic character, excluding commas and whitespace
+prop_non_alpha <- mean(str_detect(Australia$company_name, "[^A-Za-z,\\s]"))
+cat("There are", prop_non_alpha * 100, "% company names contain a non-alphabetic character, excluding commas and whitespace\n")
+
+# contain a non-alphabetic character, excluding commas, whitespace, and ampersands (“&”)
+prop_non_alpha_no_amp <- mean(str_detect(Australia$company_name, "[^A-Za-z,\\s&]"))
+cat("There are", prop_non_alpha_no_amp * 100, "% company names contain a non-alphabetic character, excluding commas, whitespace, and ampersands (“&”)\n")
+```
+
+### question 3-d
+```{r q3d}
+Australia <- Australia %>%
+  mutate(
+    phone1 = gsub("-", "", phone1),  # get rid of '-'
+    phone1 = sub("^(\\d{4})(\\d{3})(\\d{3})$", "\\1-\\2-\\3", phone1),
+    phone2 = gsub("-", "", phone2),  # get rid of '-'
+    phone2 = sub("^(\\d{4})(\\d{3})(\\d{3})$", "\\1-\\2-\\3", phone2),
+  )
+
+# check
+head(Australia[, c("phone1", "phone2")], 10)
+```
+
+### question 3-e
+```{r q3e}
+Australia <- Australia %>%
+  mutate(
+    # extract apartment number after #
+    # if there is no apartment number, keep as NA
+    apartment_number = as.numeric(sub(".*#(\\d+)$", "\\1", address))
+  )
+
+# plot
+Australia %>%
+  filter(!is.na(apartment_number)) %>%
+  ggplot(aes(x = log(apartment_number))) +
+  geom_histogram(binwidth = 0.5, fill = "steelblue", color = "black") +
+  labs(
+    title = "Histogram of log apartment numbers",
+    x = "log(apartment number)",
+    y = "Count"
+  )
+```
+
+### question 3-f
+```{r q3f}
+# extract the first digit
+benford_data <- Australia %>%
+  filter(!is.na(apartment_number)) %>%
+  mutate(leading_digit = as.numeric(substr(apartment_number, 1, 1))) %>%
+  count(leading_digit) %>%
+  mutate(freq = n / sum(n))
+
+# theorem distribution
+benford_theory <- data.frame(
+  leading_digit = 1:9,
+  prob = log10(1 + 1 / (1:9))
+)
+
+# visualization
+ggplot() +
+  geom_bar(data = benford_data, aes(x = factor(leading_digit), y = freq), 
+           stat = "identity", fill = "steelblue", alpha = 0.7) +
+  geom_line(data = benford_theory, aes(x = factor(leading_digit), y = prob, group = 1), 
+            color = "red") +
+  geom_point(data = benford_theory, aes(x = factor(leading_digit), y = prob), 
+             color = "red") +
+  labs(
+    title = "Apartment Numbers vs. Benford's Law",
+    x = "Leading Digit",
+    y = "Frequency"
+  )
+```
+
+According to the visualization plot, the apartment number in this Austrilia - 500 data set doesn't follow the Benford’s law. Instead, the leading digits are approximately uniform distributed. So I think the apartment number would not pass as real data.
