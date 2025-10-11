@@ -12,7 +12,7 @@ editor: visual
 ---
 
 
-For source files and data, see my GitHub repo: [STATS-506-Problem-Sets-03](https://github.com/CrispyShyYi/STATS-506-Problem-Sets/tree/main/set-3)
+For source files and data, see my GitHub repo: [STATS-506-Problem-Sets-04](https://github.com/CrispyShyYi/STATS-506-Problem-Sets/tree/main/set-4)
 
 ## Question 1
 
