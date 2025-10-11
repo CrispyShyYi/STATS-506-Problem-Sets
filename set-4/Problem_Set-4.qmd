@@ -1,0 +1,27 @@
+---
+title: "Problem Set 4"
+author: "Jialiang Wu"
+format:
+  html:
+    theme: default
+    page-layout: article
+    code-fold: true
+    code-summary: "Show the code"
+    embed-resources: true
+editor: visual
+---
+
+
+For source files and data, see my GitHub repo: [STATS-506-Problem-Sets-03](https://github.com/CrispyShyYi/STATS-506-Problem-Sets/tree/main/set-3)
+
+## Question 1
+
+
+\newpage
+
+## Question 2
+
+
+\newpage
+
+## Question 3
