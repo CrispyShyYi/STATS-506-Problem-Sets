@@ -11,10 +11,10 @@ format:
 editor: visual
 ---
 
-For source files and data, see my GitHub repo:
-[STATS-506-Problem-Sets-03](https://github.com/CrispyShyYi/STATS-506-Problem-Sets/tree/main/set-3)
+For source files and data, see my GitHub repo: [STATS-506-Problem-Sets-03](https://github.com/CrispyShyYi/STATS-506-Problem-Sets/tree/main/set-3)
 
 ## Set up
+
 ```{r}
 library(knitr)
 library(dplyr)
@@ -96,6 +96,7 @@ str(cleaned)
 ```
 
 ### question 1-c
+
 ```{r q1c}
 # transfer Num5Children and AnnualHouseIncome to continuous
 cleaned <- cleaned %>%
@@ -183,6 +184,7 @@ kable(all_results, digits = 3, caption = "Poisson regression results: Incidence 
 ```
 
 ### question 1-d
+
 ```{r q1d}
 # IRR
 print("Coefficient of the L2 Model")
@@ -196,9 +198,10 @@ exp(confint(L2))
 summary(L2)
 ```
 
-In Model 2L, gender has a significant effect on the Tympanometric width of the left ear. For females compared to males, the estimated log(IRR) is 0.015 (SE = 0.0035, z = 4.41, p < 0.001). Transformed to the incidence risk ratio scale, this corresponds to an IRR of 1.016, meaning that females have, on average, about a 1.6% higher expected Tympanometric width than males, after controlling for citizenship status, number of children, and annual household income.
+In Model 2L, gender has a significant effect on the Tympanometric width of the left ear. For females compared to males, the estimated log(IRR) is 0.015 (SE = 0.0035, z = 4.41, p \< 0.001). Transformed to the incidence risk ratio scale, this corresponds to an IRR of 1.016, meaning that females have, on average, about a 1.6% higher expected Tympanometric width than males, after controlling for citizenship status, number of children, and annual household income.
 
 ## Question 2
+
 connect db
 
 ```{r connect}
@@ -210,6 +213,7 @@ dbListTables(sakila)
 ```
 
 ### question 2-a
+
 ```{r q2a}
 # dive into customer table
 dbListFields(sakila, "customer")
@@ -269,6 +273,7 @@ microbenchmark(
 According to the benchmark comparision, the SQL run faster than the SQL + R strategy
 
 ### question 2-b
+
 ```{r q2b}
 # dive into corresponding tables
 dbListFields(sakila, "staff")
@@ -323,6 +328,7 @@ microbenchmark(
 According to the benchmark comparasion, the SQL run faster than the SQL + R strategy
 
 ### question 2-c
+
 ```{r q2c}
 # dive into corresponding tables
 dbListFields(sakila, "film")
@@ -400,12 +406,14 @@ According to the benchmark comparasion, the SQL + R strategy run faster than the
 ## Question 3
 
 set up data frame
+
 ```{r Australia-500Records}
 # load data set
 Australia <- read.csv("au-500.csv")
 ```
 
 ### question 3-a
+
 ```{r q3a}
 # count web ends with ".com"
 pattern <- "\\.com\\s*$"
@@ -416,15 +424,18 @@ cat("There is", pct_com, "% of websites are .com’s")
 ```
 
 ### question 3-b
+
 ```{r q3b}
 Australia %>%
   count(domain = sub(".*@", "", email)) %>%
   arrange(desc(n)) %>%
   slice(1)
 ```
+
 According to the result, the hotmail.com is the most used domain
 
 ### question 3-c
+
 ```{r q3c}
 # contain a non-alphabetic character, excluding commas and whitespace
 prop_non_alpha <- mean(str_detect(Australia$company_name, "[^A-Za-z,\\s]"))
@@ -436,6 +447,7 @@ cat("There are", prop_non_alpha_no_amp * 100, "% company names contain a non-alp
 ```
 
 ### question 3-d
+
 ```{r q3d}
 Australia <- Australia %>%
   mutate(
@@ -450,6 +462,7 @@ head(Australia[, c("phone1", "phone2")], 10)
 ```
 
 ### question 3-e
+
 ```{r q3e}
 Australia <- Australia %>%
   mutate(
@@ -471,6 +484,7 @@ Australia %>%
 ```
 
 ### question 3-f
+
 ```{r q3f}
 # extract the first digit
 benford_data <- Australia %>%
