@@ -17,6 +17,7 @@ For source files and data, see my GitHub repo: [STATS-506-Problem-Sets-04](https
 ## Set Up
 ```{r setup tidyverse}
 library(tidyverse)
+library(scales)
 library(ggplot2)
 ```
 
@@ -78,6 +79,8 @@ winners
 \newpage
 
 ## Question 2
+
+### load ATP Matches data
 ```{r load data}
 ATP <- readr::read_delim("https://raw.githubusercontent.com/JeffSackmann/tennis_atp/refs/heads/master/atp_matches_2019.csv", show_col_types = FALSE)
 ```
@@ -110,7 +113,7 @@ n_tournaments <- nrow(other_ids) + 1
 n_tournaments
 ```
 
-**Comment:** There are 128 tournaments took place in 2019
+**Answer:** There are 128 tournaments took place in 2019
 
 ### question 2-b
 The Laver Cup (tournament_id: 2019-9210)  is a special team exhibition event (Team Europe vs Team World).
@@ -175,7 +178,7 @@ ggplot(aces_long, aes(x = Role, y = Aces, fill = Role)) +
   labs(title = "Distribution of Aces: Winners vs Losers (2019)")
 ```
 
-**Comment:** There is clear descriptive evidence that match winners tend to serve more aces than losers in 2019. While not a formal hypothesis test, the mean, median, and distribution comparisons all point in the same direction.
+**Answer:** There is clear descriptive evidence that match winners tend to serve more aces than losers in 2019. While not a formal hypothesis test, the mean, median, and distribution comparisons all point in the same direction.
 
 ### question 2-d
 For each player, the win rate = number of matches won / total matches played
@@ -211,13 +214,182 @@ top_players
 \newpage
 
 ## Question 3
-### laod data set
+### laod NYTimes Covid data
 ```{r setup_question3}
 covid <- readr::read_delim("https://raw.githubusercontent.com/nytimes/covid-19-data/refs/heads/master/rolling-averages/us.csv", show_col_types = FALSE)
 ```
 
 ### question 3-a
 ```{r q3a}
+# Define percentile cutoffs
+major_cutoff <- quantile(covid$cases_avg, probs = 0.95, na.rm = TRUE)
+minor_cutoff <- quantile(covid$cases_avg, probs = 0.75, na.rm = TRUE)
+
+covid_peaks <- covid %>%
+  mutate(
+    is_peak = cases_avg > lag(cases_avg) & cases_avg > lead(cases_avg),
+    spike_type = case_when(
+      is_peak & cases_avg >= major_cutoff ~ "Major spike",
+      is_peak & cases_avg >= minor_cutoff ~ "Minor spike",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(spike_type)) %>%
+  mutate(spike_type = factor(spike_type, levels = c("Major spike", "Minor spike")))
+
+peak_counts <- covid_peaks %>%
+  count(spike_type) %>%
+  mutate(label = paste0(spike_type, ": ", n))
+
+peak_counts
+
+highlight_labels <- covid_peaks %>%
+  filter(spike_type == "Major spike") %>%
+  arrange(desc(cases_avg)) %>%
+  slice_head(n = 5) %>%  # label the five largest major spikes
+  mutate(
+    label = paste0(
+      format(date, "%b %Y"),
+      "\n",
+      scales::comma(round(cases_avg)),
+      " cases"
+    )
+  )
+
+covid %>%
+  ggplot(aes(date, cases_avg)) +
+  geom_line(color = "grey30", linewidth = 0.6) +
+  geom_point(
+    data = covid_peaks,
+    aes(color = spike_type, size = spike_type),
+    alpha = 0.85
+  ) +
+  scale_size_manual(values = c("Major spike" = 2.8, "Minor spike" = 1.6)) + 
+  labs(
+    title = "Identifying Major and Minor Spikes in US COVID-19 Cases",
+    x = NULL,
+    y = "average new cases",
+    caption = "Source: NYTimes rolling averages. Major spikes >= 95th
+  percentile; minor spikes between 75th and 95th percentiles."
+  )
 
 ```
 
+**Answer:** Personally, I set a peak as major peak when the `cases_avg` is larger than the 95% percentiles, and a peak as minor peak when `cases_avg` is between 75% and 95% percentiles. And there are 2 major peaks and 26 minor peaks
+
+### question 3-b
+```{r q3b}
+# state level data
+url <- "https://raw.githubusercontent.com/nytimes/covid-19-data/refs/heads/master/rolling-averages/us-states.csv"
+
+covid_states <- read_csv(url, col_types = cols()) %>%
+  mutate(date = as.Date(date))
+
+# cases_avg_per_100k
+cases_state_totals <- covid_states %>%
+  group_by(state) %>%
+  summarise(
+    total_cases_per_100k = sum(cases_avg_per_100k, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(total_cases_per_100k))
+
+cases_extreme_states <- bind_rows(
+  slice_head(cases_state_totals, n = 1),
+  slice_tail(cases_state_totals, n = 1)
+) %>%
+  pull(state)
+
+plot_data <- covid_states %>%
+  filter(state %in% cases_extreme_states)
+
+ggplot(plot_data, aes(date, cases_avg_per_100k, color = state)) +
+  geom_line(size = 0.9) +
+  labs(
+    title = "COVID-19 New Cases per 100,000 Residents",
+    x = NULL,
+    y = "avg new cases per 100k",
+    color = "State",
+  ) +
+  scale_y_continuous(labels = number_format(accuracy = 1)) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position = "top",
+    plot.title = element_text(face = "bold")
+  )
+
+# deaths_avg_per_100k
+deaths_state_totals <- covid_states %>%
+  group_by(state) %>%
+  summarise(
+    total_deaths_per_100k = sum(deaths_avg_per_100k, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(total_deaths_per_100k))
+
+deaths_extreme_states <- bind_rows(
+  slice_head(deaths_state_totals, n = 1),
+  slice_tail(deaths_state_totals, n = 1)
+) %>%
+  pull(state)
+
+plot_data <- covid_states %>%
+  filter(state %in% deaths_extreme_states)
+
+ggplot(plot_data, aes(date, deaths_avg_per_100k, color = state)) +
+  geom_line(size = 0.9) +
+  labs(
+    title = "COVID-19 deaths per 100,000 Residents",
+    x = NULL,
+    y = "avg deaths per 100k",
+    color = "State",
+  ) +
+  scale_y_continuous(labels = number_format(accuracy = 1)) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position = "top",
+    plot.title = element_text(face = "bold")
+  )
+```
+
+**Answer:** the provided data set is the national series, where one row per day for the entire country. So we need another data set with state-level data. [NYTimes Covid Data - State Level](https://raw.githubusercontent.com/nytimes/covid-19-data/refs/heads/master/rolling-averages/us-states.csv).
+
+First, use the variable `cases_avg_per_100k`. Compared with these two different stats, where Rhode Island has the highest overall new cases rates per population and Maine has the lowest overall new cases rates per population, there is no big trend difference between these two. However, we can tell at similar timestamps, the Rhode Island usually has larger peaks compared with Maine.
+
+Second, use the variable `deaths_avg_per_100k`. Compared with these two different stats, where Rhode Island has the lowest overall deaths rates per population and Arizona has the highest overall deaths rates per population, the Rhode Island's deaths rate in population has a peak in 2022, while the deaths rate for Arizona has three to four peaks around 2020.6, 2021.2, 2022.1, and 2023.1.
+
+### question 3-c
+```{r q3c}
+threshold <- 20   # avg new cases per 100k interpreted as “substantial”
+first_hits <- covid_states %>%
+  filter(cases_avg_per_100k >= threshold) %>%
+  group_by(state) %>%
+  summarise(first_substantial = min(date), .groups = "drop") %>%
+  arrange(first_substantial)
+
+early_states <- first_hits %>%
+  slice_head(n = 5) %>%
+  pull(state)
+
+plot_data <- covid_states %>%
+  filter(state %in% early_states) %>%
+  inner_join(first_hits, by = "state") %>%
+  filter(date >= first_substantial - 7, date <= first_substantial + 21) %>%
+  mutate(
+    days_since_first = as.integer(date - first_substantial),
+    state = fct_reorder(state, first_substantial)
+  )
+
+ggplot(plot_data, aes(days_since_first, cases_avg_per_100k, color = state)) +
+  geom_hline(yintercept = threshold, linetype = "dashed", color = "grey50") +
+  geom_line(size = 1) +
+  geom_point(data = subset(plot_data, days_since_first == 0), size = 2) +
+  labs(
+    title = "Earliest States To See Sustained COVID-19 Spread",
+    x = "Days Since First Substantial Spread",
+    y = "Avg New Cases per 100k",
+    color = "State"
+    )
+```
+
+**Answer:** To answer this question, I set a threshold, which is 20 `cases_avg_per_100k`, representing a state starts to experience Covid. And then find the first date every states first hit the threshold, and arrange in an increasing sequence, to imformally identify the first five states.
