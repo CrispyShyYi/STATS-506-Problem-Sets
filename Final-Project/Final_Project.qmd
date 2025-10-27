@@ -1,0 +1,14 @@
+---
+title: "Final Project"
+author: "Jialiang Wu"
+format:
+  html:
+    theme: default
+    page-layout: article
+    code-fold: true
+    code-summary: "Show the code"
+    embed-resources: true
+editor: visual
+---
+
+For source files and data, see my GitHub repo: [STATS-506-Problem-Final-Project]()
