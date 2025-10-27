@@ -11,4 +11,4 @@ format:
 editor: visual
 ---
 
-For source files and data, see my GitHub repo: [STATS-506-Problem-Final-Project]()
+For source files and data, see my GitHub repo: [STATS-506-Problem-Final-Project](https://github.com/CrispyShyYi/STATS-506-Problem-Sets/tree/main/Final-Project)
