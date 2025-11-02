@@ -11,6 +11,8 @@ format:
 editor: visual
 ---
 
+For source files and data, see my GitHub repo: [STATS-506-Problem-Sets-05](https://github.com/CrispyShyYi/STATS-506-Problem-Sets/tree/main/set-5)
+
 ## Problem 1
 
 ## Problem 2
