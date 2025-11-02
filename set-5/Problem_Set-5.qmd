@@ -15,6 +15,238 @@ For source files and data, see my GitHub repo: [STATS-506-Problem-Sets-05](https
 
 ## Problem 1
 
+### problem 1-a
+```{r p1a}
+# S4 class
+setClass("waldCI",
+         slots = c(mean = "numeric",
+                   sterr = "numeric",
+                   level = "numeric"))
+
+
+# Constructor
+waldCI <- function(mean = NULL, sterr = NULL, lb = NULL, ub = NULL, level = 0.95){
+  # 1: mean + sterr
+  if(!is.null(mean) && !is.null(sterr)){
+    new("waldCI", mean = mean, sterr = sterr, level = level)
+  } 
+  # lb + ub (+ CI)
+  else if(!is.null(lb) && !is.null(ub)){
+    # convert CI to mean + se
+    z <- qnorm( (1 + level)/2 )
+    m <- (lb + ub)/2
+    se <- (ub - m)/z
+    new("waldCI", mean = m, sterr = se, level = level)
+  } 
+  else {
+    stop("must give mean+sterr or lb+ub")
+  }
+}
+
+# Validator
+setValidity("waldCI", function(object){
+
+  if(object@sterr <= 0){
+    return("standard error must be > 0")
+  }
+  if(object@level <= 0 || object@level >= 1){
+    return("level must be in (0,1)")
+  }
+  
+  lb <- lbCalc(object, object@level)
+  ub <- ubCalc(object, object@level)
+  
+  if(lb > ub){
+    return("lower bound cannot exceed upper bound")
+  }
+
+  if(!is.finite(lb) || !is.finite(ub)){
+    return("bounds cannot be infinite")
+  }
+
+  return(TRUE)
+})
+
+
+# show
+setGeneric("show", function(object, level=object@level, digits=3) standardGeneric("show"))
+setMethod("show", "waldCI",
+          function(object, level=object@level, digits=3){
+            cat("Wald CI:",
+                paste0("[", round(lbCalc(object, level), digits), ", ",
+                       round(ubCalc(object, level), digits), "]"),
+                " at level ", level, "\n")
+          })
+
+
+# Accessors
+setGeneric("lb", function(object, level = object@level) standardGeneric("lb"))
+setGeneric("ub", function(object, level = object@level) standardGeneric("ub"))
+setGeneric("mean", function(object) standardGeneric("mean"))
+setGeneric("sterr", function(object) standardGeneric("sterr"))
+
+setGeneric("lb<-", function(object, level=object@level, value) standardGeneric("lb<-"))
+setGeneric("ub<-", function(object, level=object@level, value) standardGeneric("ub<-"))
+setGeneric("mean<-", function(object, value) standardGeneric("mean<-"))
+setGeneric("sterr<-", function(object, value) standardGeneric("sterr<-"))
+
+setGeneric("lb<-", function(object, level=object@level, value){
+  standardGeneric("lb<-")
+})
+setGeneric("ub<-", function(object, level=object@level, value){
+  standardGeneric("ub<-")
+})
+
+# expand CI function
+lbCalc <- function(object, level = object@level){
+  object@mean - qnorm((1 + level)/2) * object@sterr
+}
+ubCalc <- function(object, level = object@level){
+  object@mean + qnorm((1 + level)/2) * object@sterr
+}
+setGeneric("mean<-", function(object, value){
+  standardGeneric("mean<-")
+})
+setGeneric("sterr<-", function(object, value){
+  standardGeneric("sterr<-")
+})
+
+# Setter
+setMethod("lb", "waldCI", function(object,level) lbCalc(object, level))
+setMethod("ub", "waldCI", function(object,level) ubCalc(object, level))
+setMethod("mean", "waldCI", function(object) object@mean)
+setMethod("sterr","waldCI", function(object) object@sterr)
+
+setMethod("lb<-", "waldCI",
+          function(object, level, value){
+            z <- qnorm((1+level)/2)
+            object@mean <- (value + ubCalc(object, level))/2
+            object@sterr <- (ubCalc(object, level) - object@mean)/z
+            validObject(object)
+            object
+          })
+
+setMethod("ub<-", "waldCI",
+          function(object, level, value){
+            z <- qnorm((1+level)/2)
+            object@mean <- (value + lbCalc(object, level))/2
+            object@sterr <- (value - object@mean)/z
+            validObject(object)
+            object
+          })
+
+setMethod("mean<-", "waldCI",
+          function(object, value){
+            object@mean <- value
+            validObject(object)
+            object
+          })
+
+setMethod("sterr<-", "waldCI",
+          function(object, value){
+            object@sterr <- value
+            validObject(object)
+            object
+          })
+
+
+
+# contains
+setGeneric("contains", function(object, value, level = object@level) standardGeneric("contains"))
+setMethod("contains", "waldCI", function(object, value, level){
+  lbCalc(object, level) <= value & value <= ubCalc(object, level)
+})
+
+# overlap
+setGeneric("overlap", function(x, y, level = 0.95) standardGeneric("overlap"))
+setMethod("overlap", c("waldCI", "waldCI"),
+          function(x, y, level = 0.95){
+            max(lbCalc(x, level), lbCalc(y, level)) <= min(ubCalc(x,level), ubCalc(y,level))
+          })
+
+
+# as.numeric
+setMethod("as.numeric","waldCI",
+          function(x, level = x@level){
+            c(lbCalc(x, level), ubCalc(x, level))
+          })
+
+
+# transform
+setGeneric("transform", function(object, f, level = object@level) standardGeneric("transform"))
+setMethod("transform", c("waldCI", "function"),
+          function(object, f, level = object@level){
+            newlb <- f(lbCalc(object, level))
+            newub <- f(ubCalc(object, level))
+            waldCI(lb = newlb, ub = newub, level = level)
+          })
+```
+
+### problem 1-b
+```{r p1b}
+# ci1
+ci1 <- waldCI(lb = 17.2,
+              ub = 24.7,
+              level = 0.95)
+
+# ci2
+ci2 <- waldCI(mean = 13,
+              sterr = 2.5)
+
+# ci3
+ci3 <- waldCI(lb = 27.43,
+              ub = 39.22,
+              level = 0.75)
+
+# Evaluate
+ci1
+ci2
+ci3
+
+as.numeric(ci1)
+as.numeric(ci2, .8)
+as.numeric(ci3)
+
+show(ci1, .9)
+show(ci2, .8)
+show(ci3, .75)
+
+lb(ci2)
+ub(ci2, .99)
+mean(ci1)
+sterr(ci3)
+
+lb(ci2) <- 10.5
+lb(ci2, .9) <- 10
+mean(ci3) <- 34
+
+contains(ci1, 17)
+contains(ci2, 11, .9)
+contains(ci3, 44)
+
+overlap(ci1, ci2)
+overlap(ci1, ci2, .99)
+
+eci1 <- transform(ci1, exp)
+eci1
+show(eci1, .75)
+mean(transform(ci2, sqrt))
+```
+
+### problem 1-c
+```{r p1c}
+try(waldCI(mean=10, sterr=-2))
+try(waldCI(lb=5, ub=1))
+
+try(waldCI(mean=Inf, sterr=2))       # mean infinite
+try(waldCI(mean=10, sterr=Inf))      # sterr infinite
+try(waldCI(mean=10, sterr=2, level=1)) # infinite z bound
+
+ci <- waldCI(mean=10,sterr=2)
+try(lb(ci) <- 200)
+try(ub(ci,.9) <- -10)
+```
+
 ## Problem 2
 
 ## Problem 3
