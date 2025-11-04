@@ -16,6 +16,7 @@ For source files and data, see my GitHub repo: [STATS-506-Problem-Sets-05](https
 ## Problem 1
 
 ### problem 1-a
+
 ```{r p1a}
 # S4 class
 setClass("waldCI",
@@ -183,6 +184,7 @@ setMethod("transform", c("waldCI", "function"),
 ```
 
 ### problem 1-b
+
 ```{r p1b}
 # ci1
 ci1 <- waldCI(lb = 17.2,
@@ -234,6 +236,7 @@ mean(transform(ci2, sqrt))
 ```
 
 ### problem 1-c
+
 ```{r p1c}
 try(waldCI(mean=10, sterr=-2))
 try(waldCI(lb=5, ub=1))
@@ -248,6 +251,7 @@ try(ub(ci,.9) <- -10)
 ```
 
 ## Problem 2
+
 ### load ATP Matches data
 
 ```{r setup_question2}
@@ -255,6 +259,7 @@ library(data.table)
 
 ATP <- fread("https://raw.githubusercontent.com/JeffSackmann/tennis_atp/refs/heads/master/atp_matches_2019.csv")
 ```
+
 ### problem 2-a
 
 In the ATP Matches dataset, the Davis Cup is recorded differently from regular ATP tournaments. Each Davis Cup tie (e.g., France vs Japan, Spain vs Russia) is assigned its own tourney_id. This means that if we simply count distinct(tourney_id), the Davis Cup will appear as many separate tournaments, which would artificially inflate the number of tournaments in 2019.
@@ -284,7 +289,7 @@ The Laver Cup (tournament_id: 2019-9210) is a special team exhibition event (Tea
 
 Therefore, for Question 2-b (counting how many players won multiple tournaments and identifying the player(s) with the most titles), the Laver Cup and The Davis Cup should be excluded from the statistics.
 
-```{r p2b} 
+```{r p2b}
 # Exclude Davis Cup and Laver Cup
 ATP_clean <- ATP[!like(tourney_id, "2019-M-DC") & tourney_id != "2019-9210"]
 
@@ -378,11 +383,13 @@ top_players
 ## Problem 3
 
 ### laod NYTimes Covid data
+
 ```{r setup_question3}
 covid <- fread("https://raw.githubusercontent.com/nytimes/covid-19-data/refs/heads/master/rolling-averages/us.csv")
 ```
 
 ### problem 3-a
+
 ```{r p3a}
 # percentile cutoff
 major_cutoff <- quantile(covid$cases_avg, probs = 0.95, na.rm = TRUE)
@@ -457,6 +464,7 @@ plot_ly() %>%
 **Answer:** Personally, I set a peak as major peak when the `cases_avg` is larger than the 95% percentiles, and a peak as minor peak when `cases_avg` is between 75% and 95% percentiles. And there are 2 major peaks and 26 minor peaks
 
 ### problem 3-b
+
 ```{r p3b}
 url <- "https://raw.githubusercontent.com/nytimes/covid-19-data/refs/heads/master/rolling-averages/us-states.csv"
 covid_states <- fread(url)
@@ -516,6 +524,7 @@ First, use the variable `cases_avg_per_100k`. Compared with these two different 
 Second, use the variable `deaths_avg_per_100k`. Compared with these two different stats, where Rhode Island has the lowest overall deaths rates per population and Arizona has the highest overall deaths rates per population, the Rhode Island's deaths rate in population has a peak in 2022, while the deaths rate for Arizona has three to four peaks around 2020.6, 2021.2, 2022.1, and 2023.1.
 
 ### problem 3-c
+
 ```{r p3c}
 threshold <- 20
 
