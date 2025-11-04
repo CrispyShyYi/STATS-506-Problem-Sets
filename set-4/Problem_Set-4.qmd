@@ -11,10 +11,10 @@ format:
 editor: visual
 ---
 
-
 For source files and data, see my GitHub repo: [STATS-506-Problem-Sets-04](https://github.com/CrispyShyYi/STATS-506-Problem-Sets/tree/main/set-4)
 
 ## Set Up
+
 ```{r setup tidyverse}
 library(tidyverse)
 library(scales)
@@ -24,6 +24,7 @@ library(ggplot2)
 ## Question 1
 
 ### load `nzelect`
+
 ```{r setup_question1}
 library(nzelect)
 data("nzge")
@@ -32,6 +33,7 @@ nzge <- as_tibble(nzge)
 ```
 
 ### question 1-a
+
 ```{r q1a}
 # group by year and type
 vote_summary <- nzge %>%
@@ -45,6 +47,7 @@ vote_summary
 ```
 
 ### question 1-b
+
 ```{r rq1b}
 candidate_2014 <- nzge %>%
   filter(election_year == 2014, voting_type == "Candidate") %>%
@@ -59,6 +62,7 @@ candidate_2014
 ```
 
 ### question 1-c
+
 ```{r q1c}
 winners <- nzge %>%
   group_by(election_year, voting_type, party) %>%
@@ -81,17 +85,16 @@ winners
 ## Question 2
 
 ### load ATP Matches data
+
 ```{r load data}
 ATP <- readr::read_delim("https://raw.githubusercontent.com/JeffSackmann/tennis_atp/refs/heads/master/atp_matches_2019.csv", show_col_types = FALSE)
 ```
 
 ### question 2-a
-In the ATP Matches dataset, the Davis Cup is recorded differently from regular ATP tournaments.
-Each Davis Cup tie (e.g., France vs Japan, Spain vs Russia) is assigned its own tourney_id.
-This means that if we simply count distinct(tourney_id), the Davis Cup will appear as many separate tournaments, which would artificially inflate the number of tournaments in 2019.
 
-To address this, we need to group all tourney_id values that belong to the Davis Cup (those containing "2019-M-DC") and treat them as one single tournament.
-For the rest of the tournaments, we can safely count distinct tourney_id values directly.
+In the ATP Matches dataset, the Davis Cup is recorded differently from regular ATP tournaments. Each Davis Cup tie (e.g., France vs Japan, Spain vs Russia) is assigned its own tourney_id. This means that if we simply count distinct(tourney_id), the Davis Cup will appear as many separate tournaments, which would artificially inflate the number of tournaments in 2019.
+
+To address this, we need to group all tourney_id values that belong to the Davis Cup (those containing "2019-M-DC") and treat them as one single tournament. For the rest of the tournaments, we can safely count distinct tourney_id values directly.
 
 Thus, the total number of tournaments in 2019 is calculated as:
 
@@ -113,14 +116,14 @@ n_tournaments <- nrow(other_ids) + 1
 n_tournaments
 ```
 
-**Answer:** There are 128 tournaments took place in 2019
+**Answer:** There are 69 tournaments took place in 2019
 
 ### question 2-b
-The Laver Cup (tournament_id: 2019-9210)  is a special team exhibition event (Team Europe vs Team World).
-Unlike standard ATP tournaments, it does not have a single final match (round == "F") that produces an individual player champion. Also, the Davis Cup is a national team competition, not an individual tournament, which means the winner is the nation’s team, not an individual player.
-Instead, the winner is a team, determined by cumulative points across multiple singles and doubles matches.
+
+The Laver Cup (tournament_id: 2019-9210) is a special team exhibition event (Team Europe vs Team World). Unlike standard ATP tournaments, it does not have a single final match (round == "F") that produces an individual player champion. Also, the Davis Cup is a national team competition, not an individual tournament, which means the winner is the nation’s team, not an individual player. Instead, the winner is a team, determined by cumulative points across multiple singles and doubles matches.
 
 Therefore, for Question 2-b (counting how many players won multiple tournaments and identifying the player(s) with the most titles), the Laver Cup and The Davis Cup should be excluded from the statistics.
+
 ```{r q2b}
 # Exclude Davis Cup and Laver Cup
 ATP_clean <- ATP %>%
@@ -154,6 +157,7 @@ max_titles
 **Answer:** There are 12 players won more than one tournament, and the most winning player won 5 tournaments.
 
 ### question 2-c
+
 ```{r q2c}
 # Summarize mean and median aces
 aces_summary <- ATP %>%
@@ -181,7 +185,9 @@ ggplot(aces_long, aes(x = Role, y = Aces, fill = Role)) +
 **Answer:** There is clear descriptive evidence that match winners tend to serve more aces than losers in 2019. While not a formal hypothesis test, the mean, median, and distribution comparisons all point in the same direction.
 
 ### question 2-d
+
 For each player, the win rate = number of matches won / total matches played
+
 ```{r q2d}
 # Wins per player
 wins <- ATP %>%
@@ -209,17 +215,21 @@ top_players <- player_stats %>%
 
 top_players
 ```
+
 **Answer:** As a result Rafael Nadal has the highest win-rate in tournament 2019.
 
 \newpage
 
 ## Question 3
+
 ### laod NYTimes Covid data
+
 ```{r setup_question3}
 covid <- readr::read_delim("https://raw.githubusercontent.com/nytimes/covid-19-data/refs/heads/master/rolling-averages/us.csv", show_col_types = FALSE)
 ```
 
 ### question 3-a
+
 ```{r q3a}
 # Define percentile cutoffs
 major_cutoff <- quantile(covid$cases_avg, probs = 0.95, na.rm = TRUE)
@@ -278,6 +288,7 @@ covid %>%
 **Answer:** Personally, I set a peak as major peak when the `cases_avg` is larger than the 95% percentiles, and a peak as minor peak when `cases_avg` is between 75% and 95% percentiles. And there are 2 major peaks and 26 minor peaks
 
 ### question 3-b
+
 ```{r q3b}
 # state level data
 url <- "https://raw.githubusercontent.com/nytimes/covid-19-data/refs/heads/master/rolling-averages/us-states.csv"
@@ -359,6 +370,7 @@ First, use the variable `cases_avg_per_100k`. Compared with these two different 
 Second, use the variable `deaths_avg_per_100k`. Compared with these two different stats, where Rhode Island has the lowest overall deaths rates per population and Arizona has the highest overall deaths rates per population, the Rhode Island's deaths rate in population has a peak in 2022, while the deaths rate for Arizona has three to four peaks around 2020.6, 2021.2, 2022.1, and 2023.1.
 
 ### question 3-c
+
 ```{r q3c}
 threshold <- 20   # avg new cases per 100k interpreted as “substantial”
 first_hits <- covid_states %>%
