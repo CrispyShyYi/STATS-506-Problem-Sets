@@ -430,34 +430,25 @@ highlight_labels <- covid_peaks[
   )
 ]
 
-# plotly
-plot_ly() %>%
-  add_lines(
-    data = covid,
-    x = ~date,
-    y = ~cases_avg,
-    line = list(width = 0.6, color = "grey30"),
-    name = "cases avg"
-  ) %>%
-  add_markers(
+# plot_ly
+plot_ly() %>% 
+  add_lines( 
+    data = covid, 
+    x = ~date, y = ~cases_avg, 
+    line = list(width = 0.6, color = "grey30"), 
+    name = "cases avg" 
+  ) %>% 
+  add_markers( 
     data = covid_peaks,
-    x = ~date,
-    y = ~cases_avg,
-    color = ~spike_type,
-    marker = list(size = ifelse(covid_peaks$spike_type=="Major spike", 10, 6), opacity = 0.85),
-    hoverinfo = "text",
-    text = ~paste(
-      format(date, "%b %d %Y"),
-      "<br>", spike_type,
-      "<br>", scales::comma(round(cases_avg)), "cases"
-    ),
-    name = "spikes"
-  ) %>%
-  layout(
-    title = "Identifying Major and Minor Spikes in US COVID-19 Cases",
-    xaxis = list(title = ""),
-    yaxis = list(title = "average new cases"),
-    showlegend = TRUE
+    x = ~date, y = ~cases_avg, 
+    color = ~spike_type, 
+    marker = list(size = ifelse(covid_peaks$spike_type=="Major spike", 10, 6), opacity = 0.85)
+  ) %>% 
+  layout( 
+    title = "Identifying Major and Minor Spikes in US COVID-19 Cases", 
+    xaxis = list(title = ""), 
+    yaxis = list(title = "average new cases"), 
+    showlegend = TRUE 
   )
 ```
 
