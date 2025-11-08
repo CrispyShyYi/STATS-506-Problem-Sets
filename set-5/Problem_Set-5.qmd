@@ -516,6 +516,8 @@ Second, use the variable `deaths_avg_per_100k`. Compared with these two differen
 
 ### problem 3-c
 
+**Answer:** To answer this question, I set a threshold, which is 20 `cases_avg_per_100k`, representing a state starts to experience Covid. And then find the first date every states first hit the threshold, and arrange in an increasing sequence, to informally identify the first five states.
+
 ```{r p3c}
 threshold <- 20
 
@@ -563,5 +565,3 @@ p <- p %>%
 p
 
 ```
-
-**Answer:** To answer this question, I set a threshold, which is 20 `cases_avg_per_100k`, representing a state starts to experience Covid. And then find the first date every states first hit the threshold, and arrange in an increasing sequence, to imformally identify the first five states.
